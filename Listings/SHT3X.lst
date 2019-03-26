@@ -1,0 +1,321 @@
+C51 COMPILER V9.59.0.0   SHT3X                                                             03/22/2019 15:59:02 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE SHT3X
+OBJECT MODULE PLACED IN .\Objects\SHT3X.obj
+COMPILER INVOKED BY: D:\Software\Keil_v5\C51\BIN\C51.EXE SHT3X.C OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Lis
+                    -tings\SHT3X.lst) TABS(2) OBJECT(.\Objects\SHT3X.obj)
+
+line level    source
+
+   1          
+   2          #include "SHT3X.H"
+   3          
+   4          /*================================================================
+   5          【名 称】
+   6          【功 能】模拟IIC使用的引脚定义，注意要上拉电阻
+   7          【备 注】
+   8          【作 者】
+   9          【时 间】2010年8月18日11:24:09
+  10          ================================================================*/
+  11          sbit SDA=P2^1;
+  12          sbit SCL=P2^0;
+  13          
+  14          #define POLYNOMIAL  0x31 // P(x) = x^8 + x^5 + x^4 + 1 = 00110001
+  15          
+  16          //==============================================================================
+  17          unsigned char SHT3X_CalcCrc(unsigned char *crcdata, unsigned char nbrOfBytes){
+  18   1      //==============================================================================
+  19   1        unsigned char Bit;        // bit mask
+  20   1        unsigned char crc = 0xFF; // calculated checksum
+  21   1        unsigned char byteCtr;    // byte counter
+  22   1        
+  23   1        // calculates 8-Bit checksum with given polynomial
+  24   1        for(byteCtr = 0; byteCtr < nbrOfBytes; byteCtr++)
+  25   1        {
+  26   2          crc ^= (crcdata[byteCtr]);
+  27   2          for(Bit = 8; Bit > 0; --Bit)
+  28   2          {
+  29   3            if(crc & 0x80) crc = (crc << 1) ^ POLYNOMIAL;
+  30   3            else           crc = (crc << 1);
+  31   3          }
+  32   2        }
+  33   1        return crc;
+  34   1      }
+  35          ///*================================================================
+  36          //【名 称】void Delay(unsigned int t)
+  37          //【功 能】延时长
+  38          //【备 注】
+  39          //【作 者】
+  40          //【时 间】2010年8月18日11:24:09
+  41          //================================================================*/
+  42          //void Delay(unsigned int t)
+  43          //{
+  44          //  unsigned char i;
+  45          //  while(t--)
+  46          //  {
+  47          //    for(i=0;i<200;i++);
+  48          //  }            
+  49          //}
+  50          //void Delay1ms()   //@24.000MHz
+  51          //{
+  52          //  unsigned char i, j;
+  53          
+  54          //  i = 24;
+C51 COMPILER V9.59.0.0   SHT3X                                                             03/22/2019 15:59:02 PAGE 2   
+
+  55          //  j = 85;
+  56          //  do
+  57          //  {
+  58          //    while (--j);
+  59          //  } while (--i);
+  60          //}
+  61          
+  62          //***********************以下是模拟I2C函数****************************//
+  63          /*================================================================
+  64          【名 称】void I2CDelay (unsigned char t)
+  65          【功 能】模拟IIC用的短延时
+  66          【备 注】
+  67          【作 者】
+  68          【时 间】2010年8月18日11:24:09
+  69          ================================================================*/
+  70          void I2CDelay (unsigned char t)
+  71          {
+  72   1        while(t--);
+  73   1      }
+  74          /*================================================================
+  75          【名 称】void I2CInit(void)
+  76          【功 能】I2C初始化，空闲状态
+  77          【备 注】
+  78          【作 者】
+  79          【时 间】2010年8月18日11:24:09
+  80          ================================================================*/
+  81          void I2CInit(void)
+  82          {
+  83   1        SDA = 1; 
+  84   1        SCL = 1;
+  85   1      }
+  86          /*================================================================
+  87          【名 称】void I2CStart(void)
+  88          【功 能】I2C起始信号
+  89          【备 注】SCL、SDA同为高，SDA跳变成低之后，SCL跳变成低
+  90          【作 者】
+  91          【时 间】2010年8月18日11:24:09
+  92          ================================================================*/
+  93          void I2CStart(void)
+  94          {
+  95   1          SDA = 1;
+  96   1          SCL = 1;
+  97   1          I2CDelay(10);
+  98   1          SDA = 0;
+  99   1          I2CDelay(20);
+ 100   1          SCL = 0;
+ 101   1          I2CDelay(20);
+ 102   1      }
+ 103          /*================================================================
+ 104          【名 称】void I2CStop(void)
+ 105          【功 能】I2C停止信号
+ 106          【备 注】SCL、SDA同为低，SCL跳变成高之后，SDA跳变成高
+ 107          【作 者】
+ 108          【时 间】2010年8月18日11:24:09
+ 109          ================================================================*/
+ 110          void I2CStop(void)
+ 111          {
+ 112   1          SDA = 0;
+ 113   1          SCL = 0;
+ 114   1          I2CDelay(10);
+ 115   1          SCL = 1;
+ 116   1          I2CDelay(10);
+C51 COMPILER V9.59.0.0   SHT3X                                                             03/22/2019 15:59:02 PAGE 3   
+
+ 117   1          SDA = 1;
+ 118   1          I2CDelay(10);
+ 119   1      }
+ 120          /*================================================================
+ 121          【名 称】unsigned char I2CWRByte(unsigned char WRByte)
+ 122          【功 能】I2C写一个字节数据，返回ACK或者NACK
+ 123          【备 注】从高到低，依次发送
+ 124          【作 者】
+ 125          【时 间】2010年8月18日11:24:09
+ 126          ================================================================*/
+ 127          etError I2CWRByte(unsigned char WRByte)
+ 128          {
+ 129   1        unsigned char i;
+ 130   1        SCL = 0;
+ 131   1        for(i=0;i<8;i++)
+ 132   1        {
+ 133   2          if(WRByte&0x80)
+ 134   2          {
+ 135   3            SDA = 1;  
+ 136   3          }
+ 137   2          else
+ 138   2          {
+ 139   3            SDA = 0;
+ 140   3          }
+ 141   2          I2CDelay(10);
+ 142   2          SCL=1;      //输出SDA稳定后，拉高SCL给出上升沿，从机检测到后进行数据采样
+ 143   2          I2CDelay(50);
+ 144   2          SCL=0;
+ 145   2          I2CDelay(10);
+ 146   2          WRByte <<= 1;
+ 147   2        } 
+ 148   1        SDA = 1;
+ 149   1        SCL = 1;
+ 150   1        I2CDelay(20);
+ 151   1        if(SDA==1)      //SDA为高，收到NACK
+ 152   1        {
+ 153   2          SCL=0;
+ 154   2          I2CDelay(50);
+ 155   2          return ACK_ERROR; 
+ 156   2        }
+ 157   1        else        //SDA为低，收到ACK
+ 158   1        {
+ 159   2          SCL=0;
+ 160   2          I2CDelay(50);
+ 161   2          return NO_ERROR;
+ 162   2        }
+ 163   1      }
+ 164          /*================================================================
+ 165          【名 称】unsigned char I2CRDByte(unsigned char AckValue)
+ 166          【功 能】I2C读一个字节数据，入口参数用于控制应答状态，ACK或者NACK
+ 167          【备 注】从高到低，依次接收
+ 168          【作 者】
+ 169          【时 间】2010年8月18日11:24:09
+ 170          ================================================================*/
+ 171          unsigned char I2CRDByte(unsigned char AckValue)
+ 172          {
+ 173   1        unsigned char i,RDByte=0;
+ 174   1        SCL = 0;
+ 175   1        SDA = 1;      //释放总线  
+ 176   1        for (i=0;i<8;i++) 
+ 177   1        {
+ 178   2          RDByte <<= 1; //移位
+C51 COMPILER V9.59.0.0   SHT3X                                                             03/22/2019 15:59:02 PAGE 4   
+
+ 179   2          SCL = 1;    //给出上升沿
+ 180   2          I2CDelay(30); //延时等待信号稳定
+ 181   2          if(SDA==1)    //采样获取数据
+ 182   2          {
+ 183   3            RDByte |= 0x01;
+ 184   3          }
+ 185   2          else
+ 186   2          {
+ 187   3            RDByte &= 0xfe;
+ 188   3          }
+ 189   2          SCL = 0;      //下降沿，从机给出下一位值
+ 190   2          I2CDelay(10);
+ 191   2        }   
+ 192   1        SDA =  AckValue;  //应答状态
+ 193   1        I2CDelay(10);
+ 194   1        SCL = 1;                         
+ 195   1          I2CDelay(50);          
+ 196   1          SCL = 0;
+ 197   1          SDA = 1;                
+ 198   1          I2CDelay(1);
+ 199   1        return RDByte;
+ 200   1      }
+ 201          etError SHT3X_WriteCommand(etCommands cmd){
+ 202   1      //==============================================================================
+ 203   1        etError error; // error code
+ 204   1        // write the upper 8 bits of the command to the sensor
+ 205   1        error  = I2CWRByte(cmd >> 8);
+ 206   1        // write the lower 8 bits of the command to the sensor
+ 207   1        error |= I2CWRByte(cmd & 0xFF);
+ 208   1        
+ 209   1        return error;
+ 210   1      }
+ 211          /*================================================================
+ 212          【名 称】void SHT3XInit(void)
+ 213          【功 能】SHT3X初始化函数，主函数中调用
+ 214          【备 注】从高到低，依次接收
+ 215          【作 者】
+ 216          【时 间】2010年8月18日11:24:09
+ 217          ================================================================*/
+ 218          void SHT3XInit(void)
+ 219          {
+ 220   1      
+ 221   1        I2CInit();//I2C初始化
+ 222   1        I2CStart();
+ 223   1        I2CWRByte(SHT3XWriteHeader);
+ 224   1        SHT3X_WriteCommand(CMD_CLEAR_STATUS); //
+ 225   1        I2CStop();
+ 226   1        
+ 227   1        
+ 228   1        I2CStart();
+ 229   1        I2CWRByte(SHT3XWriteHeader);
+ 230   1        SHT3X_WriteCommand(CMD_MEAS_PERI_1_H); //1秒高精度循环测量模式
+ 231   1        I2CStop();
+ 232   1        
+ 233   1        
+ 234   1      }
+ 235          
+ 236          
+ 237          
+ 238          
+ 239          //==============================================================================循环读取模式
+ 240          etError SHT3X_XHGetTempAndHumi(int        *temp,
+C51 COMPILER V9.59.0.0   SHT3X                                                             03/22/2019 15:59:02 PAGE 5   
+
+ 241                                       int         *humi){
+ 242   1      //==============================================================================
+ 243   1        etError error;           // error code
+ 244   1        unsigned long int    rawValueTemp;    // temperature raw value from sensor
+ 245   1        unsigned long int    rawValueHumi;    // humidity raw value from sensor
+ 246   1        unsigned char Rdata[6]={0};
+ 247   1        unsigned char i;                                       
+ 248   1        I2CStart();
+ 249   1        error  = I2CWRByte(SHT3XWriteHeader);
+ 250   1        // if no error ...
+ 251   1        if(error == NO_ERROR)
+ 252   1        {
+ 253   2          // start measurement in polling mode
+ 254   2          // use depending on the required repeatability, the corresponding command
+ 255   2           error = SHT3X_WriteCommand(CMD_FETCH_DATA);
+ 256   2        }
+ 257   1        // if no error, wait until measurement ready
+ 258   1        if(error == NO_ERROR)
+ 259   1        {
+ 260   2          I2CStart();
+ 261   2           error = I2CWRByte(SHT3XReadHeader);
+ 262   2            // if measurement has finished -> exit loop
+ 263   2        }
+ 264   1        // if no error, read temperature and humidity raw values
+ 265   1        if(error == NO_ERROR)
+ 266   1        {
+ 267   2          for(i=0;i<5;i++)
+ 268   2          {
+ 269   3            Rdata[i] = I2CRDByte(ACK);
+ 270   3          }
+ 271   2          Rdata[i] = I2CRDByte(NACK);
+ 272   2          I2CStop();
+ 273   2          if(Rdata[2]!=SHT3X_CalcCrc(Rdata,2))     error = CHECKSUM_ERROR;
+ 274   2          if(Rdata[5]!=SHT3X_CalcCrc(&Rdata[3],2)) error = CHECKSUM_ERROR;  
+ 275   2        }
+ 276   1        // if no error, calculate temperature in  and humidity in %RH
+ 277   1        if(error == NO_ERROR)
+ 278   1        {
+ 279   2          rawValueTemp =(Rdata[0] << 8) | Rdata[1];
+ 280   2          rawValueHumi =(Rdata[3] << 8) | Rdata[4];
+ 281   2          *temp =(int)( 1750 *rawValueTemp / 65535 - 450);
+ 282   2          *humi =(int)(1000 *rawValueHumi / 65535);
+ 283   2        }
+ 284   1        return error;
+ 285   1      }
+ 286          
+ 287          
+ 288          
+ 289          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    610    ----
+   CONSTANT SIZE    =      6    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      28
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

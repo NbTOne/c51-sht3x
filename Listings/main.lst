@@ -1,0 +1,77 @@
+C51 COMPILER V9.59.0.0   MAIN                                                              03/22/2019 17:35:19 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Software\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "SHT3X.h"
+   2          #include "head.h"
+   3          int temp, humi;
+   4          
+   5          void delay_ms(uint16 n)
+   6          {
+   7   1          unsigned int i;
+   8   1      
+   9   1          unsigned char j;
+  10   1      
+  11   1          for(i=0;i<n;i++)
+  12   1          {
+  13   2            for(j=0;j<200;j++);
+  14   2      
+  15   2            for(j=0;j<102;j++);
+  16   2          } 
+  17   1        
+  18   1      }
+  19          
+  20          void sendTempAndHumi(int temp,int humi){
+  21   1        uint8 sendbuf[13],i;
+  22   1        sendbuf[0]  = (temp / 10000) + '0';
+  23   1        sendbuf[1]  = (temp % 10000 / 1000) + '0';
+  24   1        sendbuf[2]  = (temp % 1000  / 100) + '0';
+  25   1        sendbuf[3]  = (temp % 100   / 10) + '0';
+  26   1        sendbuf[4]  = '.';
+  27   1        sendbuf[5]  = (temp % 10) + '0';
+  28   1        sendbuf[6]  = ':';
+  29   1        sendbuf[7]  = humi/10000 + '0';
+  30   1        sendbuf[8]  = humi%10000/1000 + '0'+10;
+  31   1        sendbuf[9]  = humi%1000/100+ '0'+10;
+  32   1        sendbuf[10]  = humi%100/10+ '0'+10;
+  33   1        sendbuf[11] = '.';
+  34   1        sendbuf[12] = humi % 10 + '0'+10;
+  35   1        for(i=0;i<=12;i++){
+  36   2          UART_Send_Byte(sendbuf[i]);
+  37   2        }
+  38   1      //  UART_Send_Byte(humi%10);
+  39   1        
+  40   1      }
+  41          
+  42          void main(){
+  43   1        SHT3XInit();
+  44   1        UART_init();
+  45   1        Uart_Send_String("hkhkvv");
+  46   1        while(1){
+  47   2          SHT3X_XHGetTempAndHumi(&temp,&humi);
+  48   2          sendTempAndHumi(temp,humi);
+  49   2          delay_ms(2000);
+  50   2        }
+  51   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V9.59.0.0   MAIN                                                              03/22/2019 17:35:19 PAGE 2   
+
+   CODE SIZE        =    381    ----
+   CONSTANT SIZE    =      7    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4      16
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

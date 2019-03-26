@@ -1,0 +1,6 @@
+".\Objects\STARTUP.obj",
+".\Objects\SHT3X.obj",
+".\Objects\main.obj",
+".\Objects\uart.obj" 
+TO ".\Objects\sht3x" 
+PRINT(".\Listings\sht3x.m51") RAMSIZE(256) 
